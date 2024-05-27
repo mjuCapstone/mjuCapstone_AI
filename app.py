@@ -1,29 +1,42 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import Dict, Any
+import logging
+import os
+import re
+import json
 from openai import OpenAI
 from dotenv import load_dotenv
-import os
-import json
-import re
-from typing import Dict
 
 app = FastAPI()
 
 load_dotenv()
-assistant_id = os.getenv("ASSISTANT_ID")
+
+assistant_id =os.getenv("ASSISTANT_ID")
+
+class ResponseModel(BaseModel):
+    name: str
+    gram: int
+    kcal: int
+    carbohydrate: int
+    protein: int
+    fat: int
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
-class ContentRequest(BaseModel):
-    content: str
+logging.basicConfig(level=logging.INFO)
 
-@app.post("/api/v1/recommend/chat")
-async def recommend(request: ContentRequest):
-    content = request.content
-    # content += "답은 json{name : String, gram : int, kcal : int, carbohydrate : int, protein : int, fat : int}  형식으로 부탁해"
-    print(content)
+
+@app.post("/api/v1/recommend/chat", response_model=ResponseModel)
+async def recommend(request: Dict[str, Any]):
+    content = request.get("content")
+    if not content:
+        raise HTTPException(status_code=400, detail="Content not provided")
+
+    logging.info(f"Received content: {content}")
+
     try:
         # create thread
         thread = client.beta.threads.create(
@@ -42,6 +55,7 @@ async def recommend(request: ContentRequest):
 
         messages = list(client.beta.threads.messages.list(thread_id=thread.id, run_id=run.id))
         message_content = messages[0].content[0].text
+        logging.info(f"Received message content: {message_content}")
 
         # message_content가 Text 객체인 경우, .value 속성을 통해 실제 텍스트를 가져옵니다
         if hasattr(message_content, 'value'):
@@ -55,12 +69,17 @@ async def recommend(request: ContentRequest):
             # JSON 문자열을 파이썬 딕셔너리로 변환
             data = json.loads(json_str)
 
+            # 응답 데이터를 로그에 출력
+            logging.info(f"Response data: {data}")
+
             # 파이썬 딕셔너리를 그대로 반환
             return data
         else:
+            logging.error("JSON 형식의 데이터를 찾을 수 없습니다.")
             raise HTTPException(status_code=400, detail="JSON 형식의 데이터를 찾을 수 없습니다.")
 
     except Exception as e:
+        logging.error(f"Exception: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == '__main__':
