@@ -13,17 +13,12 @@ app = FastAPI()
 load_dotenv()
 
 assistant_id =os.getenv("ASSISTANT_ID")
-
+api_key_env = os.getenv("OPENAI_API_KEY")
 class ResponseModel(BaseModel):
     name: str
-    gram: int
-    kcal: int
-    carbohydrate: int
-    protein: int
-    fat: int
 
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
+    api_key= api_key_env
 )
 
 logging.basicConfig(level=logging.INFO)
