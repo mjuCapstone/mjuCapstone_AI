@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import List, Dict, Any
 import logging
 import os
 import re
@@ -12,19 +12,16 @@ app = FastAPI()
 
 load_dotenv()
 
-assistant_id =os.getenv("ASSISTANT_ID")
+assistant_id = os.getenv("ASSISTANT_ID")
 api_key_env = os.getenv("OPENAI_API_KEY")
-class ResponseModel(BaseModel):
-    name: str
 
 client = OpenAI(
-    api_key= api_key_env
+    api_key=api_key_env
 )
 
 logging.basicConfig(level=logging.INFO)
 
-
-@app.post("/api/v1/recommend/chat", response_model=ResponseModel)
+@app.post("/api/v1/recommend/chat")
 async def recommend(request: Dict[str, Any]):
     content = request.get("content")
     if not content:
@@ -61,13 +58,13 @@ async def recommend(request: Dict[str, Any]):
         if json_match:
             json_str = json_match.group(1)
 
-            # JSON 문자열을 파이썬 딕셔너리로 변환
+            # JSON 문자열을 파이썬 리스트로 변환
             data = json.loads(json_str)
 
             # 응답 데이터를 로그에 출력
-            logging.info(f"Response data: {data}")
+            logging.info(f"Response data: {json.dumps(data, ensure_ascii=False)}")
 
-            # 파이썬 딕셔너리를 그대로 반환
+            # 응답 반환 (JSON 배열 형태로 직접 반환)
             return data
         else:
             logging.error("JSON 형식의 데이터를 찾을 수 없습니다.")
