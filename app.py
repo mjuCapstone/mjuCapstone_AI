@@ -60,6 +60,9 @@ async def recommend(request: Dict[str, Any]):
 
             # JSON 문자열을 파이썬 리스트로 변환
             data = json.loads(json_str)
+            # 리스트 안의 리스트를 리스트 안의 딕셔너리로 변경
+            # 예: [["제육덮밥", 380]] -> [{"name": "제육덮밥", "price": 380}]
+            data = [{"name": item[0], "amount": item[1]} for item in data]
 
             # 응답 데이터를 로그에 출력
             logging.info(f"Response data: {json.dumps(data, ensure_ascii=False)}")
@@ -73,6 +76,7 @@ async def recommend(request: Dict[str, Any]):
     except Exception as e:
         logging.error(f"Exception: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == '__main__':
     import uvicorn
